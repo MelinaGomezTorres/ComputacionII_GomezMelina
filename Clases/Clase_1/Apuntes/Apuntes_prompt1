@@ -1,0 +1,105 @@
+**Capítulo 1: Historia del Control de Versiones y la Revolución de Git**
+
+**1.1 Introducción**
+
+El control de versiones es crucial en el desarrollo de software. Permite a los desarrolladores gestionar los cambios en el código, colaborar eficientemente y mantener un historial detallado de las modificaciones. Antes de Git, los sistemas de control de versiones centralizados tenían limitaciones, especialmente en proyectos distribuidos. En este capítulo, se presenta la evolución de estos sistemas, desde sus orígenes hasta la creación de Git.
+
+**1.2 Primeros Métodos de Control de Versiones**
+
+Al principio, el control de versiones se realizaba de forma manual. Los desarrolladores hacían copias de archivos y los nombraban de manera secuencial, lo que ocasionaba desorden y errores. A medida que los proyectos crecían, se requerían herramientas automáticas para gestionar las versiones. A finales de los años 70 y principios de los 80, surgieron los primeros sistemas como:
+
+- **SCCS (1972)**: El primer sistema de control de versiones, desarrollado por Bell Labs, con almacenamiento secuencial.
+- **RCS (1982)**: Mejoró el SCCS almacenando diferencias entre versiones.
+- **CVS (1986)**: Permitió trabajo colaborativo, permitiendo a varios desarrolladores modificar un código al mismo tiempo.
+
+**1.3 Sistemas de Control de Versiones Centralizados**
+
+En las décadas de los 90 y 2000, surgieron sistemas centralizados como:
+
+- **Subversion (SVN, 2000)**: Ofreció transacciones atómicas y mejor gestión de versiones.
+- **Perforce**: Usado principalmente en videojuegos y software propietario por su alto rendimiento.
+
+Estos sistemas dependían de un servidor central, lo que los hacía vulnerables a fallos y dificultaba el trabajo distribuido.
+
+**1.4 El Nacimiento de Git: 2005 y la Crisis de BitKeeper**
+
+En 2005, debido a disputas de licencia, BitKeeper dejó de ser gratuito para el proyecto Linux. Linus Torvalds, creador de Linux, desarrolló Git como una alternativa distribuida, rápida y segura. Git tiene varias innovaciones, como:
+
+- **Arquitectura distribuida**: Cada clon del repositorio es una copia completa del historial.
+- **Modelo basado en snapshots**: Git toma instantáneas de los archivos en lugar de almacenar solo las diferencias.
+- **Integridad criptográfica**: Cada commit se identifica mediante un hash SHA-1.
+
+Git rápidamente se convirtió en el estándar para el desarrollo de software, utilizado por empresas como Google, Microsoft y Facebook.
+
+---
+
+**Capítulo 2: Fundamentos de Git y su Arquitectura Interna**
+
+**2.1 Conceptos Básicos de Git**
+
+Git funciona bajo un modelo distribuido, donde cada desarrollador mantiene una copia completa del repositorio. Los principales componentes son:
+
+- **Repositorio (.git/)**: Contiene todo el historial del proyecto.
+- **Área de trabajo (Working Directory)**: Donde están los archivos en su versión actual.
+- **Área de preparación (Staging Area)**: Espacio intermedio para los cambios antes de hacer un commit.
+- **Commit**: Instantánea de los archivos en un punto determinado.
+- **Branch (Rama)**: Línea de desarrollo separada del historial principal.
+- **Remote Repository**: Repositorios alojados en servidores como GitHub, GitLab o Bitbucket.
+
+**2.2 Modelo de Datos de Git**
+
+Git usa un modelo basado en snapshots, a diferencia de sistemas como SVN que almacenan diferencias. En Git, cada commit es una instantánea completa del estado de los archivos. Si no hay cambios en un archivo entre commits, Git guarda solo una referencia al archivo anterior. Esto hace que Git sea eficiente y confiable.
+
+**2.3 Flujos de Trabajo en Git**
+
+Git permite varios flujos de trabajo:
+
+- **Centralizado**: Similar a SVN, con una única rama principal.
+- **Feature Branching**: Cada nueva funcionalidad se desarrolla en una rama separada.
+- **Git Flow**: Utiliza ramas estructuradas como develop, feature, release y hotfix.
+- **Forking Workflow**: Común en proyectos open-source, donde cada contribuyente trabaja en su propio fork.
+
+---
+
+**Entrada/Salida en Unix/Linux**
+
+**Capítulo 3: Entrada y Salida en Unix/Linux**
+
+**3.1 Fundamentos de Entrada/Salida (E/S) en Unix/Linux**
+
+En Unix/Linux, todo se maneja como un archivo. Esto incluye dispositivos de hardware, procesos en ejecución y archivos. Los tres tipos de E/S son:
+
+- **Entrada estándar (stdin)**: Fuente predeterminada de datos (normalmente el teclado).
+- **Salida estándar (stdout)**: Destino predeterminado para la salida de datos (normalmente la terminal).
+- **Salida de error estándar (stderr)**: Canal para los mensajes de error.
+
+Cada flujo de datos tiene un descriptor de archivo asociado:
+
+- 0 → **stdin**
+- 1 → **stdout**
+- 2 → **stderr**
+
+**3.2 ¿Qué es un Descriptor de Archivo?**
+
+Un descriptor de archivo es un identificador numérico que el sistema operativo asigna a cada archivo o dispositivo abierto. Los descriptores permiten manejar flujos de datos uniformemente, independientemente de su origen o destino.
+
+**3.3 Redirección de Entrada y Salida**
+
+La redirección permite cambiar la fuente o destino de los flujos de entrada y salida sin modificar el código. Algunos ejemplos incluyen:
+
+- **Redirección de salida**: `ls > archivos.txt` guarda la salida en un archivo.
+- **Redirección de entrada**: `wc -l < archivo.txt` usa un archivo como entrada.
+- **Redirección de errores**: `comando_inexistente 2> error.log` captura los errores en un archivo.
+
+**3.4 Uso de Pipes (|)**
+
+Los pipes permiten encadenar comandos, pasando la salida de uno como entrada del siguiente. Ejemplo:
+
+- `ls -l | grep ".txt" | wc -l` cuenta los archivos `.txt`.
+
+**3.5 Dispositivos de E/S en Unix/Linux**
+
+Unix/Linux maneja dispositivos especiales en `/dev/`, como:
+
+- `/dev/null` → Descarta cualquier dato.
+- `/dev/random` → Genera números aleatorios.
