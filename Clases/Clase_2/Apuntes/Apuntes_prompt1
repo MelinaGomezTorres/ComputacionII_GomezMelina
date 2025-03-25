@@ -1,0 +1,124 @@
+**Procesos en Sistemas Operativos**  
+
+En los sistemas operativos, un proceso es la unidad fundamental de ejecución. Cada vez que un programa se ejecuta, se convierte en un proceso con su propio espacio de memoria, estado y recursos asignados. Los sistemas operativos modernos gestionan múltiples procesos simultáneamente mediante técnicas de planificación y administración de recursos.  
+
+### **1. Fundamentos de los Procesos**  
+Un proceso es una instancia en ejecución de un programa. Se compone de:  
+- **PID (Process ID)**: Identificador único del proceso.  
+- **PPID (Parent PID)**: Identificador del proceso padre.  
+- **Estado**: Puede estar en ejecución, esperando, detenido o zombi.  
+- **Contador de programa**: Indica la siguiente instrucción a ejecutar.  
+- **Pila (Stack)**: Almacena datos temporales, parámetros y direcciones de retorno.  
+- **Segmento de datos**: Contiene variables globales y estáticas.  
+- **Archivos abiertos**: El proceso mantiene una tabla con los archivos que ha abierto.  
+
+El sistema operativo asigna y gestiona estos recursos para asegurar la correcta ejecución de múltiples procesos en paralelo.  
+
+### **2. Modelo de Procesos en UNIX**  
+En UNIX y sistemas derivados, los procesos siguen una jerarquía de creación. Todo proceso es creado por otro, formando un árbol de procesos donde el proceso raíz es `init` o `systemd`.  
+
+Los principales mecanismos para la gestión de procesos en UNIX son:  
+- **`fork()`**: Duplica el proceso actual, creando un hijo con una copia exacta del padre.  
+- **`exec()`**: Sustituye la imagen del proceso por un nuevo programa.  
+- **`wait()`**: Permite que un proceso padre espere la finalización de su hijo.  
+
+Para visualizar la jerarquía de procesos en UNIX, se utiliza `pstree`, que muestra la relación entre procesos.  
+
+### **3. Evolución Histórica de la Gestión de Procesos**  
+#### **3.1 Primera Generación: Sistemas Monotarea**  
+Los primeros sistemas informáticos ejecutaban un único programa a la vez, sin posibilidad de ejecutar múltiples procesos.  
+
+#### **3.2 Segunda Generación: Sistemas Batch**  
+Aparecen los sistemas batch, donde se ejecutan varios programas en cola, sin interacción del usuario.  
+
+#### **3.3 Tercera Generación: Multiprogramación**  
+Se introducen técnicas de **multiprogramación**, permitiendo la ejecución concurrente de varios procesos mediante la asignación dinámica de recursos.  
+
+#### **3.4 Cuarta Generación: Sistemas Multitarea y Distribuidos**  
+Los sistemas modernos permiten la ejecución de múltiples procesos y la distribución de tareas en múltiples procesadores o nodos en red.  
+
+Sí, pero lo explico con más detalle aquí:  
+
+### **3.5 Procesos Zombis y Huérfanos**  
+
+En un sistema operativo, los procesos pueden quedar en estado **zombi** o **huérfano** dependiendo de la forma en que terminan y cómo el sistema gestiona su finalización.  
+
+#### **Procesos Zombis**  
+Un **proceso zombi** es un proceso que ha terminado su ejecución, pero su entrada en la tabla de procesos sigue existiendo porque su proceso padre aún no ha leído su estado de salida.  
+
+🔹 **¿Cómo ocurre un proceso zombi?**  
+1. Un proceso hijo termina su ejecución (llamando a `exit()` o finalizando normalmente).  
+2. El kernel mantiene su información en la tabla de procesos hasta que el padre la recoja con `wait()`.  
+3. Si el padre no llama a `wait()`, el proceso queda en estado **zombi**.  
+
+🔹 **¿Cómo evitar procesos zombis?**  
+- Usar `wait()` en el padre para recoger el estado del hijo.  
+- Manejar la señal `SIGCHLD` para limpiar procesos hijos automáticamente.  
+- Si el padre termina antes que el hijo, el sistema asigna el proceso huérfano a `init`, que se encargará de limpiarlo.  
+
+---
+
+#### **Procesos Huérfanos**  
+Un **proceso huérfano** es un proceso cuyo padre ha terminado antes que él.  
+
+🔹 **¿Cómo ocurre un proceso huérfano?**  
+1. Un proceso padre crea un proceso hijo.  
+2. El padre finaliza antes que el hijo.  
+3. El proceso huérfano es adoptado por el proceso `init` (PID 1 en sistemas UNIX).  
+
+🔹 **¿Los procesos huérfanos son un problema?**  
+No necesariamente. Como `init` se encarga de limpiarlos, no generan consumo innecesario de recursos como los **zombis**.  
+
+---
+
+### **Diferencia clave entre zombis y huérfanos**  
+| Característica | Proceso Zombi | Proceso Huérfano |
+|--------------|-------------|----------------|
+| **Causa** | El padre no recoge el estado del hijo | El padre finaliza antes que el hijo |
+| **Estado** | Terminado, pero aún en la tabla de procesos | Sigue en ejecución |
+| **Riesgo** | Puede llenar la tabla de procesos y afectar el sistema | No representa un problema, ya que `init` lo adopta |
+| **Solución** | Llamar a `wait()` o manejar `SIGCHLD` | No necesita solución, `init` se encarga |
+
+
+### **4. Gestión Técnica de Procesos**  
+#### **4.1 Creación y Clonación de Procesos (`fork()`)**  
+La función `fork()` permite crear un nuevo proceso duplicando el actual. Ambos procesos continúan su ejecución de forma independiente. Ejemplo en Python:  
+
+```python
+import os
+
+pid = os.fork()
+if pid == 0:
+    print("Soy el proceso hijo con PID:", os.getpid())
+else:
+    print("Soy el proceso padre con PID:", os.getpid(), "y mi hijo es", pid)
+```
+El hijo recibe `0` como retorno de `fork()`, mientras que el padre recibe el PID del hijo.  
+
+#### **4.2 Transformación de Procesos (`exec()`)**  
+Para reemplazar el código de un proceso en ejecución, se usa `exec()`:  
+
+```python
+import os
+
+pid = os.fork()
+if pid == 0:
+    os.execlp("ls", "ls", "-l")  # El proceso hijo ejecuta 'ls -l'
+else:
+    os.wait()  # El padre espera a que el hijo termine
+```
+Después de `exec()`, el proceso original desaparece y es reemplazado por el nuevo programa.  
+
+#### **4.3 Terminación de Procesos y Estado Zombi**  
+Cuando un proceso finaliza, su entrada en la tabla de procesos no se elimina inmediatamente. Si el proceso padre no recoge su estado con `wait()`, el proceso queda en estado **zombi**.  
+
+Para evitar esto, el padre debe llamar a `wait()` o usar `SIGCHLD` para gestionar la finalización de sus hijos.  
+
+### **5. Procesos en Sistemas Modernos**  
+Hoy en día, los procesos no solo se manejan con `fork()` y `exec()`, sino que han evolucionado para incluir:  
+- **Hilos (Threads)**: Permiten múltiples ejecuciones dentro de un mismo proceso.  
+- **Contenedores (Docker, cgroups, namespaces en Linux)**: Ofrecen aislamiento de procesos.  
+- **Virtualización**: Ejecuta múltiples sistemas operativos sobre una misma máquina.  
+
+Estos mecanismos permiten mejorar la eficiencia y escalabilidad de los sistemas modernos.  
+
