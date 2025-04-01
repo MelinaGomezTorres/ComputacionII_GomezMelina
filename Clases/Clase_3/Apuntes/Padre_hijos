@@ -1,0 +1,107 @@
+# 📌 Apunte sobre Procesos Padre e Hijo en Python
+
+## 🔹 ¿Qué es un proceso en Python?
+Un **proceso** es un programa en ejecución. Cada proceso tiene un **PID (Process ID)** único que lo identifica en el sistema.  
+
+## 🔹 Creación de procesos: `os.fork()`
+En Python, la función `os.fork()` se usa para **crear un nuevo proceso hijo**.  
+Cuando se ejecuta:  
+- Se **clona** el proceso actual.  
+- Ambos procesos continúan ejecutándose desde la misma línea.  
+- `os.fork()` devuelve un valor diferente en cada proceso:  
+  - **0** en el hijo (porque es el nuevo proceso).  
+  - **PID del hijo** en el padre.  
+
+### 🔹 Ejemplo básico de `os.fork()`
+```python
+import os
+
+pid = os.fork()
+
+if pid == 0:
+    print(f"Soy el hijo, mi PID es {os.getpid()}, mi padre es {os.getppid()}")
+else:
+    print(f"Soy el padre, mi PID es {os.getpid()}, mi hijo es {pid}")
+```
+✅ **El padre y el hijo ejecutan la misma línea después de `os.fork()`.**  
+
+---
+
+## 🔹 ¿Cómo evitar que un padre tenga más de un hijo?
+Si queremos que **el padre solo tenga un hijo a la vez**, podemos usar `os.wait()`, que hace que el padre espere a que su hijo termine antes de continuar:  
+
+```python
+import os
+
+for i in range(5):
+    pid = os.fork()
+
+    if pid == 0:
+        print(f"Soy el hijo {i + 1}, mi PID es {os.getpid()}, mi padre es {os.getppid()}")
+        os._exit(0)  # El hijo termina
+    else:
+        os.wait()  # El padre espera a que el hijo termine antes de seguir
+
+print(f"Soy el padre, mi PID es {os.getpid()}, terminé de crear hijos")
+```
+✅ **Este código asegura que el padre solo tenga un hijo a la vez.**  
+
+---
+
+## 🔹 ¿Qué pasa si el padre termina antes que el hijo? (Hijos huérfanos)
+Si el proceso padre **termina antes que sus hijos**, estos se vuelven **huérfanos** y son adoptados por el proceso con PID 1 (`init`).  
+
+```python
+import os
+import time
+
+pid = os.fork()
+
+if pid == 0:
+    time.sleep(2)  # El hijo sigue vivo
+    print(f"Soy el hijo, mi PID es {os.getpid()}, mi padre es ahora {os.getppid()}")
+else:
+    print("Soy el padre y termino antes que mi hijo")
+    os._exit(0)  # El padre termina antes
+```
+✅ **Cuando el padre termina, el `PPID` del hijo cambia a `1` (el proceso `init`).**  
+
+---
+
+## 🔹 ¿Qué pasa si el hijo termina antes que el padre? (Zombies)
+Si un hijo termina pero el padre **no lo espera con `os.wait()`**, el hijo se convierte en un **proceso zombie** hasta que el padre recoge su estado.  
+
+```python
+import os
+import time
+
+pid = os.fork()
+
+if pid == 0:
+    print(f"Soy el hijo, mi PID es {os.getpid()} y termino rápido")
+    os._exit(0)
+    
+time.sleep(5)  # El padre sigue vivo sin llamar a wait()
+print(f"Soy el padre, mi PID es {os.getpid()}")
+```
+✅ **El hijo termina rápido, pero el padre no lo "recoge", por lo que queda como zombie.**  
+
+---
+
+## 🔹 Resumen Final
+| Situación | Descripción | Ejemplo |
+|-----------|------------|---------|
+| **Hijos controlados** | El padre espera a cada hijo con `os.wait()` | ✅ No hay huérfanos ni zombies |
+| **Hijos huérfanos** | El padre termina antes que los hijos | 🔸 `PPID` del hijo cambia a `1` |
+| **Procesos zombie** | El hijo termina antes y el padre no usa `wait()` | 🔸 El proceso queda en la tabla de procesos hasta que el padre lo recoja |
+
+---
+
+### 📌 **Conclusión**
+Los procesos en Python permiten la ejecución simultánea de tareas.  
+Saber cómo manejarlos correctamente **evita problemas como procesos huérfanos y zombies**.  
+
+**🔹 `os.fork()` crea procesos**  
+**🔹 `os.wait()` evita zombies**  
+**🔹 Padre e hijo: Un proceso padre puede gestionar cuántos hijos tiene y cuándo crea nuevos.**  
+```

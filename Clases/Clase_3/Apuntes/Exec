@@ -1,0 +1,63 @@
+### **¿Qué es la función `exec()` en Python?**
+
+La función `exec()` en Python permite ejecutar código dinámico escrito en forma de cadena de texto o de objeto compilado. Es una función incorporada que se usa para evaluar y ejecutar bloques de código de Python en tiempo de ejecución.
+
+### **¿Qué hace `exec()`?**
+Cuando `exec()` se ejecuta, interpreta y ejecuta el código dado en el contexto actual o en un contexto específico si se le pasan diccionarios para definir los espacios de nombres global y local.
+
+### **Sintaxis de `exec()`**
+```python
+exec(object, globals=None, locals=None)
+```
+- `object`: Es una cadena de texto o un objeto código que contiene el código a ejecutar.
+- `globals` (opcional): Un diccionario que define el espacio de nombres global.
+- `locals` (opcional): Un diccionario que define el espacio de nombres local.
+
+### **Ejemplo de `exec()` en Python**
+```python
+codigo = """
+def saludar():
+    print("Hola desde exec!")
+saludar()
+"""
+exec(codigo)
+```
+**Salida:**
+```
+Hola desde exec!
+```
+
+### **¿Cuándo usar `exec()`?**
+- Cuando se necesita ejecutar código dinámico generado en tiempo de ejecución.
+- En aplicaciones avanzadas como intérpretes, análisis de datos o herramientas de depuración.
+
+### **Precauciones al usar `exec()`**
+El uso de `exec()` puede ser riesgoso si se ejecuta código no confiable, ya que puede modificar variables o ejecutar comandos maliciosos. Para evitar problemas:
+- Nunca ejecutes código proveniente de usuarios sin validarlo.
+- Usa entornos restringidos con `globals` y `locals` para limitar los efectos del código ejecutado.
+
+### **Relación entre `exec()` y `os.fork()`**
+En programación de sistemas, `os.fork()` se usa para crear procesos hijos en sistemas UNIX/Linux. `exec()` puede usarse junto con `fork()` para ejecutar un nuevo programa dentro del proceso hijo.
+
+#### **Ejemplo de `fork()` y `exec()` en Python**
+```python
+import os
+
+pid = os.fork()
+if pid == 0:
+    # Código del proceso hijo
+    codigo = "print('Soy el proceso hijo ejecutando exec')"
+    exec(codigo)
+else:
+    # Código del proceso padre
+    os.wait()  # Espera a que el hijo termine
+    print("El hijo ha terminado")
+```
+
+**Explicación:**
+1. Se crea un proceso hijo con `os.fork()`.
+2. En el proceso hijo, se ejecuta código dinámico con `exec()`.
+3. El padre espera a que el hijo termine antes de continuar.
+
+### **Conclusión**
+La función `exec()` en Python es útil para ejecutar código dinámico, pero debe usarse con precaución. Puede combinarse con `os.fork()` para ejecutar código en procesos separados, útil en la administración de procesos en sistemas UNIX/Linux.

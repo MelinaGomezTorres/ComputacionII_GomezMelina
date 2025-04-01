@@ -1,0 +1,74 @@
+### **¿Qué es una bomba fork en Python?** 🧨  
+
+Una **bomba fork** en Python es un programa que crea **procesos de manera infinita** usando `os.fork()`, hasta que el sistema colapsa.  
+
+---
+
+### **¿Cómo funciona?**  
+- Cada proceso **crea dos nuevos procesos** con `os.fork()`.  
+- Estos **siguen creando más y más procesos** en cada iteración.  
+- El número de procesos crece **exponencialmente**, agotando **CPU, memoria y PIDs** del sistema.  
+
+---
+
+### **Ejemplo en Python:**  
+🚨 **¡No ejecutes este código en tu computadora!** 🚨  
+
+```python
+import os
+
+while True:
+    os.fork()  # Crea procesos infinitamente
+    print("Proceso creado")
+```
+
+**Ejecutarlo bloqueará el sistema al consumir todos los recursos.**  
+
+---
+
+### **¿Qué pasa cuando ejecutas una bomba fork?**  
+1. Se crean demasiados procesos en poco tiempo.  
+2. El sistema operativo **se queda sin PIDs disponibles**.  
+3. El sistema puede **volverse inestable o bloquearse**.  
+4. Puede ser necesario un **reinicio forzado**.  
+
+---
+
+### **¿Cómo detener una bomba fork en Python?**  
+Si ejecutaste accidentalmente una bomba fork, intenta:  
+
+1. **Abrir otra terminal** y ejecutar:  
+   ```bash
+   pkill -9 -u tu_usuario
+   ```
+   Esto mata todos los procesos de tu usuario.  
+
+2. **Cambiar a otro TTY** (Ctrl + Alt + F3 en Linux) y ejecutar:  
+   ```bash
+   killall -9 python
+   ```  
+   (Si el script está corriendo con `python`).  
+
+3. **Si todo falla, reiniciar el sistema**.  
+
+---
+
+### **¿Cómo evitar una bomba fork en Python?**  
+- **Limitar la cantidad de procesos por usuario** con:  
+  ```bash
+  ulimit -u 1000
+  ```
+- **Usar un contador en el código** para evitar forks infinitos.  
+- **Evitar ejecutar scripts desconocidos sin revisión.**  
+
+---
+
+### **Relación con `fork()`**  
+- `os.fork()` en Python **clona el proceso actual**, igual que `fork()` en C.  
+- La bomba fork en Python se comporta igual que en C, creando procesos indefinidamente hasta agotar los recursos del sistema.  
+- Se puede mitigar usando `multiprocessing` en lugar de `fork()`, ya que ofrece mayor control sobre los procesos.  
+
+---
+
+### **Conclusión**  
+Una bomba fork **es un ataque de denegación de servicio (DoS)** que bloquea el sistema creando procesos sin límite. Es una técnica peligrosa que debe evitarse en entornos de producción.

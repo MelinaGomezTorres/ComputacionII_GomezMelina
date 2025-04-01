@@ -1,0 +1,131 @@
+### **¿Qué es `fork()` en Python?** 🏗️  
+
+`fork()` es una llamada del sistema que permite **crear un nuevo proceso** a partir de uno existente. Se utiliza para ejecutar tareas en paralelo y es una de las bases de la multitarea en sistemas operativos tipo UNIX.  
+
+En Python, `fork()` se encuentra en el módulo `os`:  
+
+```python
+import os
+
+pid = os.fork()
+
+if pid == 0:
+    print("Soy el proceso hijo")
+else:
+    print("Soy el proceso padre")
+```
+
+---
+
+### **¿Cómo funciona `fork()`?**  
+
+Cuando se ejecuta `os.fork()`:  
+1. **Se clona el proceso actual**, incluyendo su memoria y estado.  
+2. **El proceso hijo y el padre continúan ejecutándose desde la misma línea de código**.  
+3. La llamada a `fork()` devuelve un **PID** (identificador del proceso):  
+   - Si el valor es `0`, estamos en el **proceso hijo**.  
+   - Si el valor es un número positivo, estamos en el **proceso padre**.  
+
+---
+
+### **Ejemplo de `fork()` en Python**  
+
+```python
+import os
+
+pid = os.fork()
+
+if pid == 0:
+    print(f"Soy el proceso hijo, mi PID es {os.getpid()}")
+else:
+    print(f"Soy el proceso padre, mi PID es {os.getpid()} y mi hijo es {pid}")
+```
+
+📌 **Salida esperada:**  
+```
+Soy el proceso padre, mi PID es 1234 y mi hijo es 5678  
+Soy el proceso hijo, mi PID es 5678  
+```
+
+---
+
+### **Diferencia entre proceso padre e hijo**  
+
+| Característica     | Proceso Padre | Proceso Hijo |
+|-------------------|--------------|--------------|
+| PID (`os.getpid()`) | Mantiene su PID original | Obtiene un nuevo PID |
+| `fork()` retorna | El PID del hijo | `0` |
+| Recursos         | Comparte memoria al inicio | Se separa tras cambios |
+
+---
+
+### **Ejecutando código diferente en cada proceso**  
+
+```python
+import os
+
+pid = os.fork()
+
+if pid == 0:
+    print("Proceso hijo ejecutando tarea A")
+else:
+    print("Proceso padre ejecutando tarea B")
+```
+
+📌 **El padre y el hijo pueden ejecutar diferentes tareas al mismo tiempo.**  
+
+---
+
+### **¿Qué problemas puede generar `fork()`?**  
+
+1. **Fork Bomb (Bomba fork)** 🧨  
+   - Crear procesos infinitamente **colapsa el sistema**.  
+
+2. **Zombie Processes (Procesos zombi)** 🧟  
+   - Si el proceso padre no maneja la terminación del hijo, este queda en estado *zombi*.  
+
+   **Solución:** Usar `os.wait()`.  
+
+   ```python
+   import os
+
+   pid = os.fork()
+
+   if pid == 0:
+       print("Soy el hijo, terminando...")
+   else:
+       os.wait()  # Espera a que el hijo termine
+       print("Soy el padre, el hijo ha terminado")
+   ```
+
+3. **Orphan Processes (Procesos huérfanos)** 🏚️  
+   - Si el padre termina antes que el hijo, el hijo queda como *huérfano* y es adoptado por el proceso `init` (PID 1).  
+
+---
+
+### **Alternativas a `fork()` en Python**  
+
+1. **Módulo `multiprocessing`** 🏭  
+   - `fork()` puede ser riesgoso. Para crear procesos de manera más controlada, se recomienda `multiprocessing`:  
+
+   ```python
+   from multiprocessing import Process
+
+   def tarea():
+       print(f"Proceso hijo con PID {os.getpid()}")
+
+   p = Process(target=tarea)
+   p.start()
+   p.join()  # Espera a que termine
+   ```
+
+2. **Hilos con `threading`** 🔗  
+   - Para tareas que no requieren múltiples procesos, `threading` es más eficiente.  
+
+---
+
+### **Conclusión**  
+
+- `fork()` **clona** un proceso y se usa para multitarea en UNIX/Linux.  
+- **Se debe manejar con cuidado** para evitar zombies, huérfanos y bombas fork.  
+- Python recomienda **`multiprocessing`** en lugar de `fork()` para mayor control y compatibilidad con Windows.
