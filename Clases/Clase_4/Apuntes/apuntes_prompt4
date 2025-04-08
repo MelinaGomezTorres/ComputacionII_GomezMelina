@@ -1,0 +1,127 @@
+## 🧠 Apunte: **Pipes en Comunicación entre Procesos — Teoría y Práctica con Python**
+
+### 📌 ¿Qué son los Pipes?
+
+Los *pipes* (o "tuberías") son una forma de comunicación entre procesos (*InterProcess Communication*, IPC) usada ampliamente en sistemas UNIX/Linux. Funcionan como canales unidireccionales donde los datos fluyen de un proceso a otro en orden FIFO (First In, First Out).
+
+> Fueron introducidos en 1973 por Ken Thompson, inspirado por una idea de Doug McIlroy, marcando el inicio de la **filosofía UNIX**: *programas pequeños, que hacen una sola cosa bien, combinables entre sí*.
+
+---
+
+### ⚙️ Estructura Interna de un Pipe
+
+Un pipe es más que un simple canal. Internamente involucra:
+
+- Un **buffer circular** en el espacio del kernel.
+- **Punteros de lectura y escritura**, que mantienen el orden FIFO.
+- **Descriptores de archivo** (uno para lectura, otro para escritura).
+- Mecanismos de **sincronización** y **estado** que bloquean o despiertan procesos según el flujo de datos.
+
+---
+
+### 🔁 Ciclo de Vida de un Pipe
+
+1. **Creación:** `os.pipe()` → retorna dos descriptores (lectura y escritura).
+2. **Fork():** Se duplica el proceso y ambos heredan los descriptores.
+3. **Cierre de extremos no usados:** Cada proceso cierra lo que no necesita (evita bloqueos y fugas).
+4. **Comunicación:** Se realiza con `os.read()` y `os.write()` desde los extremos del pipe.
+5. **Cierre final:** Cuando ambos extremos se cierran, el kernel libera los recursos.
+
+---
+
+### 🧪 Implementación en Python
+
+A continuación se muestra un ejemplo funcional que demuestra cómo un proceso padre y su hijo se comunican usando `os.pipe()` y `os.fork()`.  
+El padre envía operaciones matemáticas y el hijo responde con el resultado.
+
+```python
+import os
+import sys
+
+def main():
+    p2c_r, p2c_w = os.pipe()  # Padre a hijo
+    c2p_r, c2p_w = os.pipe()  # Hijo a padre
+
+    pid = os.fork()
+
+    if pid > 0:
+        # Proceso padre
+        os.close(p2c_r)
+        os.close(c2p_w)
+
+        while True:
+            operation = input("Ingrese una operación matemática (o 'salir' para terminar): ")
+            os.write(p2c_w, (operation + "\n").encode())
+
+            if operation.lower() == "salir":
+                break
+
+            response = os.read(c2p_r, 1024).decode()
+            print(f"Padre recibió:\n{response}")
+
+        os.close(p2c_w)
+        os.close(c2p_r)
+        os.waitpid(pid, 0)
+
+    else:
+        # Proceso hijo
+        os.close(p2c_w)
+        os.close(c2p_r)
+
+        while True:
+            operation = b""
+            while not operation.endswith(b"\n"):
+                chunk = os.read(p2c_r, 1)
+                if not chunk:
+                    break
+                operation += chunk
+
+            operation = operation.decode().strip()
+            if operation.lower() == "salir" or not operation:
+                break
+
+            try:
+                result = str(eval(operation))
+                status = "Operación completada correctamente"
+            except Exception as e:
+                result = f"Error: {e}"
+                status = "Operación fallida"
+
+            full_response = f"Resultado: {result}\nEstado: {status}"
+            os.write(c2p_w, full_response.encode())
+
+        os.close(p2c_r)
+        os.close(c2p_w)
+        sys.exit(0)
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+### ✅ Estrategias para Prevenir Problemas Comunes
+
+| Problema | Estrategia Aplicada |
+|---------|---------------------|
+| **Bloqueo mutuo (deadlock)** | Cada proceso cierra los extremos del pipe que no usa. |
+| **Procesos zombie** | Uso de `os.waitpid()` para recolectar al hijo. |
+| **Fugas de recursos** | Se cierran todos los descriptores al terminar. |
+| **Lecturas incompletas** | Se lee hasta detectar un `\n`, asegurando mensajes completos. |
+| **Evaluación insegura** | El uso de `try-except` en `eval()` evita que errores de sintaxis interrumpan el flujo. |
+
+---
+
+### 📈 Aplicaciones Comunes
+
+- **Shell UNIX**: El operador `|` (pipe) conecta procesos como `ls | grep .py`.
+- **Pipelines personalizados**: Diseños de procesamiento en cadena (output de uno → input de otro).
+- **Procesos concurrentes y multiproceso**: Comunicación sencilla sin necesidad de sockets ni archivos temporales.
+
+---
+
+### 🧭 Conclusión
+
+El uso de pipes permite implementar sistemas modulares, eficientes y fácilmente depurables.  
+Este ejemplo en Python ilustra cómo la teoría de los pipes se traduce directamente en una implementación práctica robusta, aplicando estrategias de prevención de errores comunes.
+
