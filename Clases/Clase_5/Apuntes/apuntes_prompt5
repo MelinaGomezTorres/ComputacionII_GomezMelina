@@ -1,0 +1,143 @@
+### **Apunte sobre Queues en Programación Concurrente**
+
+---
+
+#### **1. Concepto de Queues:**
+
+En la programación concurrente, una **queue** o **cola** es una estructura de datos que sigue el principio **FIFO (First In, First Out)**. Es decir, el primer elemento en ser agregado a la cola será el primero en ser extraído.
+
+Las **Queues** se utilizan en sistemas operativos y programación multihilo o multiproceso para permitir la comunicación entre hilos o procesos sin necesidad de que compartan memoria directamente. Este mecanismo es útil para sincronizar la ejecución de procesos que se ejecutan en paralelo.
+
+---
+
+#### **2. Propósito de las Queues en la Sincronización de Procesos:**
+
+Las Queues permiten la **sincronización entre procesos y hilos**, asegurando que los datos se pasen de manera ordenada y sin que los procesos tengan acceso directo a la memoria compartida.
+
+1. **Productores y Consumidores:**
+   - Un **productor** agrega datos a la cola.
+   - Un **consumidor** extrae datos de la cola.
+   
+2. **Sincronización Automática:**
+   - Si la cola está llena, los **productores** se bloquean hasta que haya espacio disponible.
+   - Si la cola está vacía, los **consumidores** se bloquean hasta que haya datos disponibles.
+
+---
+
+#### **3. Mecanismos de Sincronización con Queues:**
+
+Las Queues ayudan a evitar problemas de **acceso concurrente** a la memoria, al proporcionar un mecanismo controlado de paso de datos. Se utilizan para que los hilos/productores y consumidores se sincronicen de la siguiente manera:
+
+1. **Bloqueo por espacio disponible:**
+   - Si la cola está llena, los productores deben esperar (bloquearse) hasta que haya espacio disponible.
+   
+2. **Bloqueo por falta de datos:**
+   - Si la cola está vacía, los consumidores deben esperar (bloquearse) hasta que el productor agregue datos.
+
+3. **Deadlock:**
+   - Un **deadlock** ocurre cuando los procesos se bloquean mutuamente esperando indefinidamente por recursos, sin que ninguno avance. Esto se puede evitar utilizando señales de finalización adecuadas (como `"FIN"`) y gestionando correctamente las dependencias.
+
+---
+
+#### **4. Implementación de Queues en Python:**
+
+En Python, se puede usar la librería `queue` para trabajar con colas de manera segura en entornos multihilo. Las clases más comunes son:
+
+- **`queue.Queue`**: Para colas de tamaño limitado.
+- **`queue.LifoQueue`**: Para pilas (último en entrar, primero en salir).
+- **`queue.PriorityQueue`**: Para colas con prioridad.
+
+Algunos métodos importantes incluyen:
+- **`put(item)`**: Inserta un elemento en la cola.
+- **`get()`**: Extrae un elemento de la cola (se bloquea si la cola está vacía).
+- **`join()`**: Bloquea el hilo hasta que todos los elementos en la cola han sido procesados.
+- **`empty()`**: Verifica si la cola está vacía.
+- **`full()`**: Verifica si la cola está llena.
+
+Ejemplo de implementación básica:
+
+```python
+import threading
+import queue
+import time
+
+# Cola con capacidad limitada
+q = queue.Queue(maxsize=5)
+
+# Función del productor
+def productor():
+    for i in range(5):
+        print(f"Productor está poniendo el item {i}")
+        q.put(i)  # Agrega item a la cola
+        time.sleep(1)  # Simula tiempo de producción
+
+# Función del consumidor
+def consumidor():
+    while True:
+        item = q.get()  # Bloquea hasta que haya un item
+        print(f"Consumidor está tomando el item {item}")
+        if item == 4:
+            break  # Finaliza el ciclo cuando recibe el item final
+
+# Crear los hilos
+hilo_productor = threading.Thread(target=productor)
+hilo_consumidor = threading.Thread(target=consumidor)
+
+# Iniciar los hilos
+hilo_productor.start()
+hilo_consumidor.start()
+
+# Esperar a que terminen
+hilo_productor.join()
+hilo_consumidor.join()
+```
+
+En este ejemplo, el **productor** coloca items en la cola y el **consumidor** los extrae. El consumidor se bloquea hasta que haya un item para consumir.
+
+---
+
+#### **5. Deadlocks:**
+
+Un **deadlock** ocurre cuando dos o más procesos o hilos esperan indefinidamente por recursos que están siendo utilizados por otros procesos. Esto puede ocurrir en situaciones de sincronización incorrecta.
+
+**Ejemplo de Deadlock**:
+Supón que dos procesos se bloquean esperando recursos mutuamente. Si uno de ellos nunca puede liberar el recurso que necesita el otro, ambos quedarán en espera indefinida.
+
+Para evitar **deadlocks** en las colas, es importante:
+- Utilizar señales de **finalización** para garantizar que todos los consumidores reciban la señal de finalización.
+- Controlar adecuadamente la sincronización de los hilos para que no se produzcan bloqueos cíclicos.
+
+---
+
+#### **6. Uso de `join()` y Señales de Finalización ("FIN"):**
+
+El método **`join()`** es utilizado para garantizar que el **proceso principal** espere a que los **procesos secundarios** (productores y consumidores) terminen antes de continuar. Sin el uso de `join()`, el proceso principal podría finalizar antes de que los hilos hayan completado su trabajo.
+
+Para evitar que los consumidores queden bloqueados indefinidamente, se puede usar una señal de finalización. Por ejemplo, enviar una señal `"FIN"` cuando los consumidores deben finalizar su ciclo.
+
+Ejemplo de uso de señales de finalización:
+
+```python
+for _ in range(n):
+    q.put("FIN")  # Enviar n señales de fin para que cada consumidor termine
+```
+
+El uso de `"FIN"` asegura que los consumidores terminen correctamente su ejecución, incluso si no hay más datos en la cola.
+
+---
+
+#### **7. Diferencias entre `Queue(maxsize=N)` y `Queue()`:**
+
+- **`Queue(maxsize=N)`**: Tiene un límite en el número de elementos que puede contener. Los productores se bloquean cuando la cola está llena.
+- **`Queue()`**: No tiene límite de tamaño, lo que permite a los productores seguir agregando elementos sin bloqueo, pero los consumidores se bloquean si la cola está vacía.
+
+---
+
+#### **8. Resumen de Conceptos Clave:**
+
+1. **Queues**: Son estructuras de datos que permiten la comunicación entre procesos/productores y consumidores, siguiendo el principio FIFO.
+2. **Bloqueo por falta de datos**: Si la cola está vacía, los consumidores se bloquean hasta que haya datos disponibles.
+3. **Bloqueo por falta de espacio**: Si la cola está llena, los productores se bloquean hasta que haya espacio para agregar nuevos elementos.
+4. **Deadlocks**: Son situaciones en las que los procesos esperan indefinidamente entre sí. Se deben prevenir utilizando señales de finalización y gestionando adecuadamente los recursos.
+5. **Uso de `join()`**: Asegura que el proceso principal espere a que todos los procesos secundarios terminen antes de finalizar.
+
