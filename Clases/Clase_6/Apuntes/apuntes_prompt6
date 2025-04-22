@@ -1,0 +1,97 @@
+## 📝 Apunte Teórico — **FIFOs (Named Pipes) en Linux/Unix**
+
+### 🔧 ¿Qué es un FIFO?
+
+Un **FIFO** (*First In, First Out*), también conocido como **named pipe**, es un mecanismo de comunicación entre procesos (*IPC*) que permite el envío de datos en un orden secuencial: el primer dato que entra es el primero que sale.
+
+A diferencia de los *pipes* anónimos (`|`), un FIFO:
+- Tiene un **nombre y una ubicación en el sistema de archivos**.
+- Puede ser accedido por **procesos no emparentados** (es decir, que no fueron creados entre sí).
+
+---
+
+### 📁 ¿Cómo se crea un FIFO?
+
+Desde la terminal:
+```bash
+mkfifo /ruta/del/fifo
+```
+
+Desde Python:
+```python
+import os
+os.mkfifo('/tmp/fifo_ejemplo')
+```
+
+---
+
+### 📤 Escritura y 📥 lectura en FIFO
+
+Los FIFOs actúan como **buffers temporales** entre un escritor y un lector. Si no hay escritor, el lector se bloquea. Si no hay lector, el escritor también se bloquea (a menos que se use el modo no bloqueante).
+
+- **Proceso escritor**: escribe en el FIFO.
+- **Proceso lector**: lee del FIFO.
+
+Una vez que un dato es leído, **desaparece del FIFO** (no es persistente como un archivo común).
+
+---
+
+### 🧠 Características clave
+
+| Propiedad | Descripción |
+|----------|-------------|
+| Bidireccionalidad | No, los FIFOs son unidireccionales (necesitás dos FIFOs para comunicación en ambos sentidos). |
+| Persistencia | El archivo FIFO existe en el sistema de archivos, pero **el contenido no es persistente**. |
+| Sincronización | Si no hay lector activo, la escritura bloquea, y viceversa. |
+| Seguridad | El FIFO puede tener permisos (`chmod`) como cualquier archivo. |
+
+---
+
+### 💡 ¿Cuándo usar un FIFO?
+
+- Para comunicar **procesos independientes** que no comparten memoria.
+- Para transmitir datos en **orden secuencial**.
+- En simulaciones de **sistemas operativos**, juegos por terminal, chat entre procesos, sensores, etc.
+
+---
+
+### ⚙️ Modo de uso con `os.open`, `os.read`, `os.write`
+
+Los FIFOs también pueden ser usados en modo de bajo nivel:
+
+```python
+fd = os.open('/tmp/fifo', os.O_WRONLY)
+os.write(fd, b'Mensaje')
+os.close(fd)
+```
+
+Lectura:
+```python
+fd = os.open('/tmp/fifo', os.O_RDONLY)
+mensaje = os.read(fd, 1024)
+print(mensaje.decode())
+os.close(fd)
+```
+
+---
+
+### ⚠️ Precauciones
+
+- **Lectura/Escritura bloqueante**: si el otro extremo no está abierto, la operación se queda esperando.
+- **No compartir entre muchos procesos al mismo tiempo** sin control, o podrías perder datos.
+- Para una **comunicación completa de ida y vuelta**, se deben crear **dos FIFOs**.
+
+---
+
+### 🧪 Ejemplo práctico: chat por FIFO
+
+- `chat_a`: escritura de usuario A, lectura para usuario B.
+- `chat_b`: escritura de usuario B, lectura para usuario A.
+- Se puede agregar `/exit` para salir, timestamps, y nombres de usuario para simular un chat real por terminal.
+
+---
+
+### 📌 Conclusión
+
+Los FIFOs son una herramienta poderosa para comunicación entre procesos en Linux. Son simples, eficientes y muy útiles en programación de sistemas, simulaciones y proyectos que imitan comportamiento de sistemas operativos.
+
