@@ -1,0 +1,171 @@
+## Señales en Sistemas Operativos: Un Mecanismo Asíncrono de Comunicación entre Procesos
+
+### Fundamentos y Teoría Sólida
+
+En los sistemas operativos tipo UNIX, las **señales** son una de las herramientas más antiguas y esenciales para la comunicación asíncrona entre procesos. Permiten notificar a un proceso sobre un evento sin que este esté explícitamente esperando dicha notificación. Este mecanismo proporciona un control reactivo frente a las estrategias de polling o sincronización activa.
+
+Una señal es una interrupción enviada por el sistema operativo (kernel) o por otros procesos. Las señales pueden originarse por eventos internos del proceso (como una división por cero), eventos externos (como una pulsación de teclado) o invocaciones explícitas a través de funciones como `kill()`. A pesar de su simplicidad conceptual —cada señal es simplemente un número entero— su integración en el control del flujo de ejecución, manejo de recursos compartidos y su semántica en el contexto de programación requiere un entendimiento profundo.
+
+### Breve Contexto Histórico
+
+Las señales fueron introducidas en los primeros sistemas UNIX como una forma de manejar eventos excepcionales, como la terminación de un proceso hijo o la escritura en un pipe roto. A lo largo del tiempo, su uso se amplió, permitiendo que los programas pudieran comunicarse entre sí de manera más eficiente. Con la estandarización de POSIX, las señales recibieron soporte para colas de señales y la capacidad de asociar información adicional con ellas.
+
+### Explicación Técnica Avanzada
+
+#### Modelo Conceptual
+
+Cada proceso mantiene una *tabla de señales pendientes* y una *máscara de señales bloqueadas*. Cuando una señal es enviada, el kernel verifica si la señal está bloqueada. Si no lo está, interrumpe el flujo del proceso y ejecuta su *manejador de señal* (si está definido). En caso contrario, aplica la acción predeterminada de la señal.
+
+Las señales se pueden clasificar en tres tipos:
+- **Síncronas**: Generadas por acciones internas del proceso, como `SIGFPE` (error de punto flotante) o `SIGSEGV` (violación de segmentación).
+- **Asíncronas**: Generadas desde el exterior (otros procesos, el kernel, o el usuario).
+- **Reales (POSIX Real-Time)**: Permiten enviar varias instancias de la misma señal y adjuntar datos adicionales (a través de `sigqueue`).
+
+#### Envío de Señales
+
+Las señales pueden enviarse de diferentes maneras:
+
+```c
+kill(pid_t pid, int sig);           // Desde otro proceso
+raise(int sig);                     // Desde el propio proceso
+pthread_kill(pthread_t tid, int sig); // A un hilo específico
+sigqueue(pid_t pid, int sig, const union sigval value); // Con datos adicionales
+```
+
+#### Manejo de Señales
+
+Para manejar señales, se utiliza el sistema de manejadores (`signal()` o preferentemente `sigaction()`):
+
+```c
+#include <signal.h>
+
+void handler(int sig) {
+    write(1, "Señal capturada\n", 17);
+}
+
+int main() {
+    struct sigaction sa = {0};
+    sa.sa_handler = handler;
+    sigaction(SIGUSR1, &sa, NULL);
+
+    while (1) pause(); // Espera la señal
+}
+```
+
+Es esencial que los manejadores sean *async-signal-safe*, es decir, que solo utilicen funciones del sistema que sean reentrantes, como `write()`, `exit()`, entre otras.
+
+#### Bloqueo y Máscaras
+
+Las señales pueden ser bloqueadas selectivamente con `sigprocmask()` o `pthread_sigmask()` para evitar que interrumpan secciones críticas del código:
+
+```c
+sigset_t mask;
+sigemptyset(&mask);
+sigaddset(&mask, SIGINT);
+pthread_sigmask(SIG_BLOCK, &mask, NULL);
+```
+
+#### Señales y Hilos
+
+En programas multihilo, las señales pueden ser entregadas a cualquier hilo no bloqueado del proceso. Sin embargo, es común centralizar el manejo de señales en un solo hilo:
+
+```c
+sigwait(&mask, &sig);
+```
+
+#### Señales Reales (POSIX)
+
+POSIX introduce las señales "reales", que permiten mantener colas de señales y adjuntar datos adicionales con cada señal. Estas señales se envían usando `sigqueue` y permiten manejar información como enteros o estructuras.
+
+```c
+sigqueue(pid, SIGRTMIN, (union sigval){.sival_int = 42});
+```
+
+El manejador de la señal puede acceder a la información usando `siginfo_t`.
+
+### Ejemplos en Python
+
+En Python, el módulo `signal` permite registrar manejadores de señales para procesos (pero no para hilos):
+
+```python
+import signal
+import time
+
+def handler(signum, frame):
+    print(f"Recibida señal: {signum}")
+
+signal.signal(signal.SIGUSR1, handler)
+print("Esperando señales")
+while True:
+    time.sleep(1)
+```
+
+Para enviar señales, se puede usar el comando:
+
+```bash
+kill -USR1 <pid>
+```
+
+### Comparaciones Técnicas
+
+| Mecanismo     | Asíncrono | Bidireccional | Capacidad de Datos | Hilos seguros |
+|---------------|-----------|----------------|---------------------|---------------|
+| Señales       | ✓         | ✗              | Limitada (excepto `sigqueue`) | Parcial      |
+| Pipes         | ✗         | ✓              | Ilimitada (flujo)   | ✓             |
+| Sockets       | ✗         | ✓              | Ilimitada           | ✓             |
+| Shared Memory | ✗         | ✓              | Ilimitada           | ✓ (con locks) |
+
+Las señales son insustituibles en ciertos escenarios, como la notificación de eventos urgentes o la gestión de procesos de forma sencilla y eficiente.
+
+### Ejercicios Prácticos
+
+1. **Básico**: Crear un programa que imprima un mensaje al recibir `SIGINT`.
+2. **Intermedio**: Usar `sigaction()` para registrar varias señales y bloquear señales durante una sección crítica con `sigprocmask()`.
+3. **Avanzado**: Crear un programa multihilo donde un hilo central maneje señales con `sigwait()` y delegue tareas.
+
+### Ejercicio Resuelto: Sincronización por Señal
+
+Este ejercicio muestra cómo un proceso padre puede esperar que un hijo complete una tarea antes de continuar, usando `SIGUSR1` para la sincronización:
+
+```python
+import os
+import signal
+import time
+import sys
+
+got_signal = False
+
+def handler(signum, frame):
+    global got_signal
+    print("[PADRE] Señal recibida, procediendo...")
+    got_signal = True
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGUSR1, handler)
+
+    pid = os.fork()
+    if pid == 0:
+        # Proceso hijo
+        print("[HIJO] Iniciando inicialización...")
+        time.sleep(2)  # Simula inicialización
+        os.kill(os.getppid(), signal.SIGUSR1)
+        print("[HIJO] Señal enviada al padre")
+        sys.exit(0)
+    else:
+        print("[PADRE] Esperando señal del hijo...")
+        while not got_signal:
+            time.sleep(0.1)
+        print("[PADRE] Continuando con la ejecución")
+```
+
+Este ejercicio demuestra cómo usar señales para la sincronización entre procesos. Aunque sencillo, es útil para comprender los fundamentos de la comunicación entre procesos utilizando señales.
+
+### Conclusiones y Referencias
+
+Las señales son un mecanismo fundamental para el control de procesos y la gestión de eventos asíncronos en sistemas operativos tipo UNIX. Dominar su uso permite diseñar aplicaciones más eficientes y robustas, especialmente en entornos con alta concurrencia o en sistemas de tiempo real.
+
+#### Lecturas y Recursos:
+- Kerrisk, M. "The Linux Programming Interface".
+- POSIX.1-2017: IEEE Std 1003.1™-2017, sección 2.4 Signals.
+- `man 7 signal`, `man 2 sigaction`, `man 2 sigqueue`
+- Python Docs: https://docs.python.org/3/library/signal.html
