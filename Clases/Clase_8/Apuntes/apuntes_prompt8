@@ -1,0 +1,100 @@
+### **Apunte Teórico sobre Programación Concurrente en Python: Procesos, Comunicación e IPC**
+
+#### **1. Procesos y Programación Concurrente en Python**
+
+Un **proceso** es una instancia de un programa que se está ejecutando. En el contexto de un sistema operativo, un proceso tiene su propio espacio de memoria, lo que garantiza aislamiento y seguridad. Esto lo hace independiente de otros procesos en ejecución. En contraposición, los **hilos** son unidades de ejecución más livianas dentro de un proceso, y comparten el mismo espacio de memoria, lo que facilita la comunicación rápida pero aumenta los riesgos de **condiciones de carrera**.
+
+**Diferencias entre procesos y hilos:**
+
+* **Memoria**: Los procesos tienen memoria aislada, mientras que los hilos comparten el espacio de memoria.
+* **Creación**: Los procesos son costosos de crear debido a su aislamiento, mientras que los hilos son más ligeros y rápidos.
+* **Comunicación**: Los procesos requieren mecanismos de comunicación entre procesos (IPC) como **Pipes** o **Queues**, mientras que los hilos pueden comunicarse directamente a través de variables compartidas.
+
+#### **2. El Global Interpreter Lock (GIL) en Python**
+
+El **GIL** de Python limita la ejecución concurrente de hilos en arquitecturas multi-core. El GIL permite que solo un hilo ejecute código Python en un momento dado, lo que impide el verdadero paralelismo en aplicaciones **CPU-bound**. Esto es especialmente relevante en tareas que requieren un uso intensivo de CPU.
+
+Para sortear esta limitación y lograr un paralelismo real, Python proporciona la biblioteca **multiprocessing**, que permite crear **procesos** independientes. Cada proceso tiene su propio espacio de memoria, lo que evita las limitaciones del GIL y permite aprovechar múltiples núcleos de procesadores para realizar cálculos en paralelo.
+
+#### **3. Multiprocessing en Python: Creación y Gestión de Procesos**
+
+Python ofrece el módulo **multiprocessing** para crear y gestionar procesos de manera eficiente. La clase **`Process`** encapsula un proceso y permite ejecutar tareas de manera concurrente. Un ejemplo básico de su uso es el siguiente:
+
+```python
+from multiprocessing import Process
+
+def saludo():
+    print("Hola desde otro proceso")
+
+if __name__ == '__main__':
+    p = Process(target=saludo)
+    p.start()  # Inicia el proceso
+    p.join()   # Espera que termine antes de continuar
+```
+
+* **Métodos principales**:
+
+  * `start()`: Lanza el proceso.
+  * `join()`: Espera a que termine.
+  * `is_alive()`: Verifica si el proceso sigue ejecutándose.
+
+* **Ciclo de vida** de un proceso:
+
+  1. **Creación**: Se instancia el objeto `Process`.
+  2. **Inicio**: Se inicia el proceso y se asigna un nuevo espacio de memoria.
+  3. **Ejecución concurrente**: El proceso ejecuta la tarea de manera independiente.
+  4. **Finalización**: El proceso termina y el sistema recolecta los recursos asignados.
+
+#### **4. Comunicación Entre Procesos: IPC**
+
+Cuando se trabaja con múltiples procesos, la **comunicación entre procesos** es esencial. Existen diferentes mecanismos para lograrlo en Python, como **Pipes** y **Queues**.
+
+* **Pipes**: Permiten la comunicación entre dos procesos, enviando datos de un extremo a otro. Son rápidos y simples, pero limitados a dos procesos.
+
+  ```python
+  from multiprocessing import Pipe
+
+  parent_conn, child_conn = Pipe()
+  parent_conn.send("Hola")
+  print(child_conn.recv())  # Recibe el mensaje
+  ```
+
+* **Queues**: Son más escalables y seguras para concurrencia. Permiten que múltiples procesos interactúen con la misma cola de datos de manera segura.
+
+  ```python
+  from multiprocessing import Queue
+
+  q = Queue()
+  q.put("dato")
+  print(q.get())  # Recibe el dato
+  ```
+
+#### **5. Sincronización y Protección de Recursos Compartidos**
+
+La **sincronización** es crucial para evitar **condiciones de carrera**, donde varios procesos acceden simultáneamente a recursos compartidos y pueden alterar su valor de manera inesperada. Para evitar estos problemas, se utilizan **Locks**.
+
+* **Locks**: Garantizan que solo un proceso pueda acceder a una sección crítica del código a la vez, protegiendo el acceso a recursos compartidos.
+
+  ```python
+  from multiprocessing import Lock
+
+  lock = Lock()
+
+  with lock:
+      # Sección crítica segura
+      # Solo un proceso puede ejecutar este bloque de código
+  ```
+
+#### **6. Ejercicio Práctico: Paralelización de Tareas CPU-Bound**
+
+Un ejemplo práctico de **multiprocessing** consiste en crear varias instancias de `Process` para ejecutar tareas **CPU-bound** (como el cálculo del cuadrado de números) en paralelo. Al comparar el tiempo de ejecución entre una versión secuencial y una paralelizada, se puede observar una mejora significativa en el rendimiento al utilizar múltiples núcleos de CPU.
+
+Este tipo de ejercicio demuestra cómo **multiprocessing** puede aprovechar el **paralelismo real** para tareas intensivas en CPU, mientras que los hilos (debido al GIL) no podrían ofrecer las mismas mejoras.
+
+#### **Conclusiones y Reflexiones Finales**
+
+1. **El GIL** limita el uso de hilos para tareas CPU-bound, pero el módulo **multiprocessing** permite superar esta limitación al ejecutar procesos independientes que pueden aprovechar múltiples núcleos de CPU.
+2. **Pipes** y **Queues** ofrecen mecanismos eficientes y escalables para la comunicación entre procesos, siendo los **Pipes** más rápidos pero limitados a dos procesos, mientras que las **Queues** permiten mayor flexibilidad y seguridad para la concurrencia.
+3. La **sincronización** con **Locks** es esencial para evitar condiciones de carrera y garantizar que los procesos accedan a recursos compartidos de manera controlada.
+
+Este apunte proporciona una visión general de cómo funciona la programación concurrente en Python, particularmente en el contexto de tareas CPU-bound, y cómo las herramientas como **multiprocessing** y **Locks** ayudan a gestionar la concurrencia de manera efectiva.
