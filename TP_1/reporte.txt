@@ -1,0 +1,6 @@
+Cantidad total de bloques: 60
+Bloques con alertas: 0
+Bloques corruptos: 0
+Promedio Frecuencia: 113.28
+Promedio Presion: 141.74
+Promedio Oxigeno: 94.63
