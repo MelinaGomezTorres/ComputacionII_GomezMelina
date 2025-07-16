@@ -1,4 +1,3 @@
-# main.py
 import multiprocessing as mp
 import hashlib
 import json
@@ -7,9 +6,7 @@ import time
 from datetime import datetime
 from collections import deque
 
-# ------------------------------
-# Utilidades
-# ------------------------------
+
 def generar_dato():
     return {
         "timestamp": datetime.now().isoformat(timespec='seconds'),
@@ -22,9 +19,7 @@ def calcular_hash(prev_hash, datos, timestamp):
     bloque_str = prev_hash + json.dumps(datos, sort_keys=True) + timestamp
     return hashlib.sha256(bloque_str.encode()).hexdigest()
 
-# ------------------------------
-# Procesos Analizadores
-# ------------------------------
+
 def analizador(tipo, pipe, queue):
     ventana = deque(maxlen=30)
     while True:
@@ -36,11 +31,11 @@ def analizador(tipo, pipe, queue):
             if tipo == 'frecuencia':
                 valor = dato['frecuencia']
             elif tipo == 'presion':
-                valor = dato['presion'][0]  # sistólica
+                valor = dato['presion'][0]  
             elif tipo == 'oxigeno':
                 valor = dato['oxigeno']
             else:
-                continue  # tipo inválido
+                continue  
             ventana.append(valor)
             media = sum(ventana) / len(ventana)
             desv = (sum((x - media)**2 for x in ventana) / len(ventana)) ** 0.5
@@ -53,9 +48,7 @@ def analizador(tipo, pipe, queue):
         except EOFError:
             break
 
-# ------------------------------
-# Proceso Verificador
-# ------------------------------
+
 def verificador(q_f, q_p, q_o, lock):
     cadena = []
     hash_anterior = '0' * 64
@@ -92,11 +85,8 @@ def verificador(q_f, q_p, q_o, lock):
         print(f"Bloque #{len(cadena)} - Hash: {hash_actual[:10]}... Alerta: {alerta}")
         time.sleep(1)
 
-# ------------------------------
-# Proceso Principal
-# ------------------------------
+
 def main():
-    # Pipes y Queues
     p_fq, c_fq = mp.Pipe()
     p_pq, c_pq = mp.Pipe()
     p_oq, c_oq = mp.Pipe()
@@ -107,7 +97,6 @@ def main():
 
     lock = mp.Lock()
 
-    # Procesos
     a_f = mp.Process(target=analizador, args=('frecuencia', c_fq, q_f))
     a_p = mp.Process(target=analizador, args=('presion', c_pq, q_p))
     a_o = mp.Process(target=analizador, args=('oxigeno', c_oq, q_o))
